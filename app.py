@@ -51,7 +51,7 @@ class MoviesView(Resource):
                 Movie.director_id,
                 Genre.name.label('genre_name'),
                 Director.name.label('director_name')
-            ).join(Movie.director).join(Movie.genre)
+            ).outerjoin(Movie.director).outerjoin(Movie.genre)
         page_num = request.args.get('page', type=int)
         director_id = request.args.get('director_id', type=int)
         director_name = request.args.get('director_name')
@@ -64,7 +64,7 @@ class MoviesView(Resource):
             return movies_schema.dump(movies_per_page), 200
         elif genre_id and director_id:
             movies_by_genre_director = general_query.filter(
-                Genre.id == genre_id,
+                Movie.genre_id == genre_id,
                 Movie.director_id == director_id).all()
             return movies_schema.dump(movies_by_genre_director), 200
         elif genre_id or genre_name:
@@ -149,14 +149,11 @@ class MovieView(Resource):
 
 @genres_ns.route('/')
 class GenresView(Resource):
-    # check if genre exists in db before adding
     def post(self):
         req_json = request.json
-        current_genres = db.session.query(Genre.name).filter(Genre.name == req_json.get('name')).all()
-        if not current_genres:
-            new_genre = Genre(**req_json)
-            db.session.add(new_genre)
-            db.session.commit()
+        new_genre = Genre(**req_json)
+        db.session.add(new_genre)
+        db.session.commit()
         return '', 201
 
     def get(self):
@@ -200,14 +197,11 @@ class DirectorsView(Resource):
         all_directors = db.session.query(Director).all()
         return directors_schema.dump(all_directors), 200
 
-    # check if director exists in db before adding
     def post(self):
         req_json = request.json
-        current_directors = db.session.query(Director.name).filter(Director.name == req_json.get('name')).all()
-        if not current_directors:
-            new_director = Director(**req_json)
-            db.session.add(new_director)
-            db.session.commit()
+        new_director = Director(**req_json)
+        db.session.add(new_director)
+        db.session.commit()
         return '', 201
 
 
