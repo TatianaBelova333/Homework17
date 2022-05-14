@@ -27,7 +27,7 @@ Content-Type: application/json
 
 ###
 
-DELETE http://localhost:5000/directors/1
+DELETE http://localhost:5000/directors/21
 Accept: application/json
 
 ###

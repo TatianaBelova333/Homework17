@@ -21,9 +21,9 @@ class Movie(db.Model):
     trailer = db.Column(db.String(255))
     year = db.Column(db.Integer)
     rating = db.Column(db.Integer)
-    genre_id = db.Column(db.Integer, db.ForeignKey("genre.id"))
+    genre_id = db.Column(db.Integer, db.ForeignKey("genre.id", ondelete='SET NULL'))
     genre = db.relationship("Genre")
-    director_id = db.Column(db.Integer, db.ForeignKey("director.id"))
+    director_id = db.Column(db.Integer, db.ForeignKey("director.id", ondelete='SET NULL'))
     director = db.relationship("Director")
 
 
@@ -273,3 +273,7 @@ for genre in data["genres"]:
     )
     with db.session.begin():
         db.session.add(d)
+
+
+if __name__ == '__main__':
+    app.run(debug=True)
