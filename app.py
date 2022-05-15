@@ -51,7 +51,7 @@ class MoviesView(Resource):
                 Movie.director_id,
                 Genre.name.label('genre_name'),
                 Director.name.label('director_name')
-            ).outerjoin(Movie.director).outerjoin(Movie.genre)
+            )
         page_num = request.args.get('page', type=int)
         director_id = request.args.get('director_id', type=int)
         director_name = request.args.get('director_name')
@@ -60,21 +60,24 @@ class MoviesView(Resource):
         if page_num:
             movies_per_page = 3
             offset_value = (page_num - 1) * movies_per_page
-            movies_per_page = general_query.limit(movies_per_page).offset(offset_value)
+            movies_per_page = general_query.\
+                outerjoin(Movie.director).outerjoin(Movie.genre).\
+                limit(movies_per_page).offset(offset_value)
             return movies_schema.dump(movies_per_page), 200
         elif genre_id and director_id:
-            movies_by_genre_director = general_query.filter(
+            movies_by_genre_director = general_query.join(Movie.director).\
+                join(Movie.genre).filter(
                 Movie.genre_id == genre_id,
                 Movie.director_id == director_id).all()
             return movies_schema.dump(movies_by_genre_director), 200
         elif genre_id or genre_name:
-            movies_by_genre = general_query.filter(db.or_(
+            movies_by_genre = general_query.join(Genre).join(Director).filter(db.or_(
                 Movie.genre_id == genre_id,
                 Genre.name == genre_name
             )).all()
             return movies_schema.dump(movies_by_genre), 200
         elif director_id or director_name:
-            movies_by_director = general_query.filter(
+            movies_by_director = general_query.join(Genre).join(Director).filter(
                 db.or_(Movie.director_id == director_id, Director.name == director_name)).all()
             return movies_schema.dump(movies_by_director), 200
         else:
@@ -94,7 +97,7 @@ class MovieView(Resource):
             Movie.rating,
             Genre.name.label('genre_name'),
             Director.name.label('director_name')
-        ).join(Director).join(Genre).filter(Movie.id == mid).first_or_404(
+        ).join(Director).outerjoin(Genre).filter(Movie.id == mid).first_or_404(
             description='Movie with id {} not found'.format(mid)
         )
         return movie_schema.dump(movie_by_id)
@@ -131,10 +134,14 @@ class MovieView(Resource):
         return '', 204
 
     def put(self, mid):
-        movie_to_put = db.session.query(Movie).get(mid)
+        movie_to_put = db.session.query(Movie).filter(Movie.id == mid)
         if not movie_to_put:
             return '', 404
         req_json = request.json
+        data = movie_schema.load(req_json)
+        movie_to_put.update(data)
+        db.session.commit()
+        """
         movie_to_put.title = req_json.get('title')
         movie_to_put.description = req_json.get('description')
         movie_to_put.trailer = req_json.get('trailer')
@@ -144,6 +151,7 @@ class MovieView(Resource):
         movie_to_put.director_id = req_json.get('director_id')
         db.session.add(movie_to_put)
         db.session.commit()
+        """
         return '', 204
 
 
